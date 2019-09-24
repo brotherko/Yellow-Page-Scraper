@@ -6,25 +6,35 @@ class YPSpider(scrapy.Spider):
 
     # Random first page
     start_urls = [
-        'http://www.yp.com.hk/Bank-Finance-Property-Insurance-b/Banking-Finance-Investment/Investment-Companies/p1/ch/',
+        'http://www.yp.com.hk/Business-Professional-Services-b/ch/',
     ]
 
     custom_settings = {
         'FEED_EXPORT_ENCODING': 'big5',
         'FEED_FORMAT': 'csv',
         'FEED_URI': 'file.csv',
-        'LOG_LEVEL': 'ERROR'
+        'LOG_LEVEL': 'ERROR',
+        'LOG_STDOUT': True
     }
 
-    # def parse(self, response):
-    #     for category in response.css('#ContentPlaceHolder_Body_Label_Left > ul > li'):
-    #         link = response.urljoin(category.css('a::attr(href)').extract())
+    def parse(self, response):
+        print("hihi")
+        for category in response.css('#ContentPlaceHolder_Body_Label_Left > ul > li'):
+            url = response.urljoin(category.css('a::attr(href)').extract_first())
+            yield scrapy.Request(url=url, callback=self.parse_cat)
 
+    def parse_cat(self, response):
+        for category in response.css('#ContentPlaceHolder_Body_Label_Right > ul > li'):
+            url = response.urljoin(category.css('a::attr(href)').extract_first())
+            yield scrapy.Request(url=url, callback=self.parse_sub_cat)
 
+    def parse_sub_cat(self, response):
+        for category in response.css('#ContentPlaceHolder_Body_Label_Right > ul > li'):
+            url = response.urljoin(category.css('a::attr(href)').extract_first())
+            yield scrapy.Request(url=url, callback=self.parse_company)
 
     # Scrape company pages
-    def parse(self, response):
-    # def parse_company(self, response):
+    def parse_company(self, response):
         for company in response.css('.listing_div'):
             yield {
                 'Company Name': company.css('.cname::text, .cname > a::text').extract_first(),
